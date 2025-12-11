@@ -39,6 +39,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <optional>
+#include <cereal/types/optional.hpp>
 
 /**
  * @namespace lbcrypto
@@ -55,6 +57,7 @@ class EvalKeyRelinImpl : public EvalKeyImpl<Element> {
 private:
     std::vector<Element> m_AKey;
     std::vector<Element> m_BKey;
+    std::optional<u_int64_t> m_seed;
 
 public:
     /**
@@ -171,6 +174,25 @@ public:
     const std::vector<Element>& GetBVector() const override {
         return m_BKey;
     }
+    /**
+   * Setter function to store the Seed.
+   * Overrides base class implementation.
+   *
+   * @param seed used to generate vector a.
+   */
+    void SetSeed(const uint64_t seed) {
+        m_seed = seed;
+    }
+
+    /**
+   * Getter function to access the Seed.
+   * Overrides base class implementation.
+   *
+   * @return The seed used to generate vector a.
+   */
+    const std::optional<u_int64_t> GetSeed() const {
+        return m_seed;
+    }
 
     void ClearKeys() override {
         m_AKey.clear();
@@ -185,9 +207,15 @@ public:
     template <class Archive>
     void save(Archive& ar, std::uint32_t const version) const {
         ar(::cereal::base_class<EvalKeyImpl<Element>>(this));
-        ar(::cereal::make_nvp("ak", m_AKey));
         ar(::cereal::make_nvp("bk", m_BKey));
-    }
+
+        ar(::cereal::make_nvp("ms", m_seed));
+
+        //Store only the seed if exists
+        if (!m_seed.has_value()) {
+            ar(::cereal::make_nvp("ak", m_AKey));
+        }
+        }
 
     template <class Archive>
     void load(Archive& ar, std::uint32_t const version) {
@@ -196,8 +224,16 @@ public:
                           " is from a later version of the library");
         }
         ar(::cereal::base_class<EvalKeyImpl<Element>>(this));
-        ar(::cereal::make_nvp("ak", m_AKey));
+
         ar(::cereal::make_nvp("bk", m_BKey));
+        ar(::cereal::make_nvp("ms", m_seed));
+        if (m_seed.has_value()) {
+            // generate ak
+        }
+        else {
+            // Seed missing -> We must LOAD AKey
+            ar(::cereal::make_nvp("ak", m_AKey));
+        }
     }
 
     std::string SerializedObjectName() const override {
