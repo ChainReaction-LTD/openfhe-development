@@ -130,10 +130,10 @@ public:
         OPENFHE_THROW("GetBVector operation not supported");
     }
 
-    virtual void SetSeed(const uint64_t seed) {
+    virtual void SetSeed(const std::vector<u_int32_t> seed) {
         OPENFHE_THROW("SetSeed operation not supported");
     }
-    virtual const std::optional<u_int64_t> GetSeed() const {
+    virtual const std::optional<std::vector<u_int32_t>> GetSeed() const {
         OPENFHE_THROW("GetSeed operation not supported");
     }
 

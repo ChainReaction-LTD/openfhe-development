@@ -57,7 +57,7 @@ class EvalKeyRelinImpl : public EvalKeyImpl<Element> {
 private:
     std::vector<Element> m_AKey;
     std::vector<Element> m_BKey;
-    std::optional<u_int64_t> m_seed;
+    std::optional<std::vector<u_int32_t>> m_seed;
 
 public:
     /**
@@ -77,7 +77,7 @@ public:
    *@param &rhs key to copy from
    */
     EvalKeyRelinImpl(const EvalKeyRelinImpl<Element>& rhs)
-        : EvalKeyImpl<Element>(rhs.context), m_AKey(rhs.m_AKey), m_BKey(rhs.m_BKey) {}
+        : EvalKeyImpl<Element>(rhs.context), m_AKey(rhs.m_AKey), m_BKey(rhs.m_BKey), m_seed(rhs.m_seed) {}
 
     /**
    * Move constructor
@@ -85,7 +85,10 @@ public:
    *@param &rhs key to move from
    */
     EvalKeyRelinImpl(EvalKeyRelinImpl<Element>&& rhs) noexcept
-        : EvalKeyImpl<Element>(rhs.context), m_AKey(std::move(rhs.m_AKey)), m_BKey(std::move(rhs.m_BKey)) {}
+        : EvalKeyImpl<Element>(rhs.context),
+          m_AKey(std::move(rhs.m_AKey)),
+          m_BKey(std::move(rhs.m_BKey)),
+          m_seed(std::move(rhs.m_seed)) {}
 
     operator bool() const {
         return (this->context != nullptr) && (m_AKey.size() != 0) && (m_BKey.size() != 0);
@@ -100,6 +103,7 @@ public:
         this->context = rhs.context;
         m_AKey        = rhs.m_AKey;
         m_BKey        = rhs.m_BKey;
+        m_seed        = rhs.m_seed;
         return *this;
     }
 
@@ -112,6 +116,7 @@ public:
         this->context = std::move(rhs.context);
         m_AKey        = std::move(rhs.m_AKey);
         m_BKey        = std::move(rhs.m_BKey);
+        m_seed        = std::move(rhs.m_seed);
         return *this;
     }
 
@@ -180,7 +185,7 @@ public:
    *
    * @param seed used to generate vector a.
    */
-    void SetSeed(const uint64_t seed) {
+    void SetSeed(const std::vector<u_int32_t> seed) noexcept override{
         m_seed = seed;
     }
 
@@ -190,7 +195,7 @@ public:
    *
    * @return The seed used to generate vector a.
    */
-    const std::optional<u_int64_t> GetSeed() const {
+    const std::optional<std::vector<u_int32_t>> GetSeed() const override{
         return m_seed;
     }
 
@@ -215,7 +220,7 @@ public:
         if (!m_seed.has_value()) {
             ar(::cereal::make_nvp("ak", m_AKey));
         }
-        }
+    }
 
     template <class Archive>
     void load(Archive& ar, std::uint32_t const version) {
