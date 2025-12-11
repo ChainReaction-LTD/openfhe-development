@@ -34,8 +34,8 @@
   relies on the built-in C++ generator for 32-bit unsigned integers defined in <random>
  */
 
-#ifndef LBCRYPTO_INC_MATH_DISCRETEUNIFORMGENERATOR_H_
-#define LBCRYPTO_INC_MATH_DISCRETEUNIFORMGENERATOR_H_
+#ifndef LBCRYPTO_INC_MATH_DISCRETEUNIFORMGENERATORCR_H_
+#define LBCRYPTO_INC_MATH_DISCRETEUNIFORMGENERATORCR_H_
 
 #include "math/distributiongenerator.h"
 
@@ -44,47 +44,30 @@
 
 namespace lbcrypto {
 
-constexpr uint32_t DUG_CHUNK_MIN{0};
-constexpr uint32_t DUG_CHUNK_WIDTH{std::numeric_limits<uint32_t>::digits};
-constexpr uint32_t DUG_CHUNK_MAX{std::numeric_limits<uint32_t>::max()};
-
 /**
  * @brief The class for Discrete Uniform Distribution generator over Zq.
  */
 template <typename VecType>
-class DiscreteUniformGeneratorImpl {
+class DiscreteUniformGeneratorCRImpl : public DiscreteUniformGeneratorImpl<VecType> {
 public:
-    DiscreteUniformGeneratorImpl()  = default;
-    ~DiscreteUniformGeneratorImpl() = default;
-    explicit DiscreteUniformGeneratorImpl(const typename VecType::Integer& modulus);
+    void SetCustomPRNG(std::unique_ptr<PRNG> prng) {
+        m_customPrng = std::move(prng);
+    }
 
-    /**
-   * @brief         Sets the modulus. Overrides parent function
-   * @param modulus The new modulus.
-   */
-    void SetModulus(const typename VecType::Integer& modulus);
+    void SetSeed(std::vector<u_int32_t> seed) {
+        m_seed = seed;
+    }
 
-    /**
-   * @brief Generates a random integer based on the modulus set for the Discrete
-   * Uniform Generator object. Required by DistributionGenerator.
-   */
-    virtual typename VecType::Integer GenerateInteger() const;
-
-    /**
-   * @brief Generates a vector of random integers using GenerateInteger()
-   */
-    virtual VecType GenerateVector(const uint32_t size) const;
-    virtual VecType GenerateVector(const uint32_t size, const typename VecType::Integer& modulus);
-
-    
+    void SetQIndex(u_int8_t qIndex) {
+        m_qIndex = qIndex;
+    }
 
 private:
-    typename VecType::Integer m_modulus{};
-    uint32_t m_chunksPerValue{};
-    uint32_t m_shiftChunk{};
-    std::uniform_int_distribution<uint32_t>::param_type m_bound{DUG_CHUNK_MIN, DUG_CHUNK_MAX};
+    std::vector<uint32_t> m_seed;
+    std::unique_ptr<PRNG> m_customPrng = nullptr;
+    u_int8_t m_qIndex;
 };
 
 }  // namespace lbcrypto
 
-#endif  // LBCRYPTO_INC_MATH_DISCRETEUNIFORMGENERATOR_H_
+#endif  // LBCRYPTO_INC_MATH_DISCRETEUNIFORMGENERATORCR_H_

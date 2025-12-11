@@ -42,6 +42,9 @@
 #include "key/evalkeyrelin.h"
 #include "scheme/ckksrns/ckksrns-cryptoparameters.h"
 #include "ciphertext.h"
+#include "utils/prng/shake128engine.h" 
+#include "math/discreteuniformgenerator-cr.h"
+
 
 namespace lbcrypto {
 
@@ -89,7 +92,14 @@ EvalKey<DCRTPoly> KeySwitchHYBRID::KeySwitchGenInternal(const PrivateKey<DCRTPol
 
     const auto ns      = cryptoParams->GetNoiseScale();
     const DggType& dgg = cryptoParams->GetDiscreteGaussianGenerator();
-    DugType dug;
+    //DiscreteUniformGeneratorCRImpl<typename DCRTPoly::Vector> dug;
+    DiscreteUniformGeneratorCRImpl<NativeVector> dug;
+    
+    std::vector<uint32_t> seed = lbcrypto::GenerateRandomSeed(4); // 32 byte seed
+    dug.SetSeed(seed);
+
+    // std::shared_ptr<PRNG> myShakePrng = std::make_shared<Shake128Engine>(seed);
+    // dug.SetCustomPRNG(myShakePrng);
 
     size_t numPartQ = cryptoParams->GetNumPartQ();
 
@@ -130,6 +140,7 @@ EvalKey<DCRTPoly> KeySwitchHYBRID::KeySwitchGenInternal(const PrivateKey<DCRTPol
 
     ek->SetAVector(std::move(av));
     ek->SetBVector(std::move(bv));
+    ek->SetSeed(std::move(seed));
     ek->SetKeyTag(newKey->GetKeyTag());
     return ek;
 }

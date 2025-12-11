@@ -7,11 +7,13 @@
 #include <cereal/types/optional.hpp>
 #include <vector>
 // Add other necessary includes
+#include "utils/prng/shake128engine.h" 
+#include "math/discreteuniformgenerator-cr.h" 
 
 using namespace lbcrypto;
 
 // --- 1. DEFINE THE FIXTURE CLASS FIRST ---
-class EvalKeyCompressionTest : public ::testing::Test {
+class EvalKeySerializationTest : public ::testing::Test {
 protected:
     CryptoContext<DCRTPoly> cc;
     KeyPair<DCRTPoly> kp;
@@ -20,20 +22,25 @@ protected:
     void SetUp() override {
         CCParams<CryptoContextCKKSRNS> parameters;
         // CKKS REQUIRED PARAMETERS
+        parameters.SetMultiplicativeDepth(1);    // Usually required for CKKS
+        parameters.SetScalingModSize(50);        // Usually required for CKKS
+        parameters.SetFirstModSize(60);          // Usually required for CKKS
+        parameters.SetSecurityLevel(HEStd_NotSet);
+        parameters.SetRingDim(65536);
 
         cc = GenCryptoContext(parameters);
         cc->Enable(PKE);
         cc->Enable(KEYSWITCH);
         cc->Enable(LEVELEDSHE);
 
-        kp = cc->KeyGen();
     }
 };
-TEST_F(EvalKeyCompressionTest, TestOptionalSeedLogic) {
-    // Create dummy vectors with valid 0-initialized polynomials
+TEST_F(EvalKeySerializationTest, TestOptionalSeedLogic) {
+    
     auto params = cc->GetElementParams();
-    DCRTPoly::DugType dug;
-
+    std::vector<uint32_t> seed = lbcrypto::GenerateRandomSeed(4); // 32 byte seed
+    DiscreteUniformGeneratorCRImpl<NativeVector> dug;
+    dug.SetSeed(seed);
     std::vector<DCRTPoly> av(3);
     std::vector<DCRTPoly> bv(3);
     for (size_t i = 0; i < 3; i++) {
@@ -44,9 +51,10 @@ TEST_F(EvalKeyCompressionTest, TestOptionalSeedLogic) {
     // 1. Create a key manually with a seed
     EvalKey<DCRTPoly> keyWithSeed = std::make_shared<EvalKeyRelinImpl<DCRTPoly>>(cc);
     keyWithSeed->SetBVector(bv);
-    keyWithSeed->SetSeed(123456789);
 
-    // 2. Serialize (should effectively save [bk, true, 123456789])
+    keyWithSeed->SetSeed(seed);
+
+    // 2. Serialize (should effectively save [bk, true, seed])
     std::stringstream ss1;
     Serial::Serialize(keyWithSeed, ss1, SerType::BINARY);
 
@@ -56,15 +64,15 @@ TEST_F(EvalKeyCompressionTest, TestOptionalSeedLogic) {
 
     // 4. Verify seed was recovered
     EXPECT_TRUE(loadedKey1->GetSeed().has_value());
-    EXPECT_EQ(loadedKey1->GetSeed().value(), 123456789);
+    EXPECT_EQ(loadedKey1->GetSeed().value(), seed);
     EXPECT_EQ(loadedKey1->GetBVector(), keyWithSeed->GetBVector());
 
     // --- CASE 2: No Seed ---
 
     // 1. Create a key without a seed
     EvalKey<DCRTPoly> keyNoSeed = std::make_shared<EvalKeyRelinImpl<DCRTPoly>>(cc);
-    keyNoSeed->SetAVector(av);
-    keyNoSeed->SetBVector(bv);
+    keyNoSeed->SetAVector(std::move(av));
+    keyNoSeed->SetBVector(std::move(bv));
 
     // 2. Serialize (should effectively save [bk, false, ak_data...])
     std::stringstream ss2;
