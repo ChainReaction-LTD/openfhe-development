@@ -34,6 +34,7 @@
 
 #include "key/evalkey.h"
 #include "key/evalkeyrelin-fwd.h"
+#include "math/discreteuniformgenerator-cr.h"
 
 #include <memory>
 #include <string>
@@ -233,6 +234,18 @@ public:
         ar(::cereal::make_nvp("bk", m_BKey));
         ar(::cereal::make_nvp("ms", m_seed));
         if (m_seed.has_value()) {
+            
+            auto params = m_BKey[0].GetParams();
+            DiscreteUniformGeneratorCRImpl<NativeVector> dug(params);
+            dug.SetSeed(m_seed.value());
+
+
+            std::vector<DCRTPoly> av(3);
+            for (size_t i = 0; i < 3; i++) {
+                av[i] = DCRTPoly(dug, params, Format::EVALUATION);
+            }
+
+
             // generate ak
         }
         else {
