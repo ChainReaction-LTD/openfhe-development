@@ -41,6 +41,12 @@
 
 #include <limits>
 #include <random>
+#include <vector>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <cassert>
 
 namespace lbcrypto {
 
@@ -50,24 +56,35 @@ namespace lbcrypto {
 template <typename VecType>
 class DiscreteUniformGeneratorCRImpl : public DiscreteUniformGeneratorImpl<VecType> {
 public:
-    void SetCustomPRNG(std::unique_ptr<PRNG> prng) {
-        m_customPrng = std::move(prng);
+    DiscreteUniformGeneratorCRImpl(std::shared_ptr<lbcrypto::M4DCRTParams> params) {
+        m_moduli = std::vector<typename VecType::Integer>(params->GetParams().size());
+        for (size_t i = 0; i < params->GetParams().size(); i++) {
+            m_moduli[i] = params->GetParams()[i]->GetModulus();
+        }
     }
 
     void SetSeed(std::vector<u_int32_t> seed) {
         m_seed = seed;
     }
 
-    void SetQIndex(u_int8_t qIndex) {
-        m_qIndex = qIndex;
+    void SetSalt(u_int32_t salt) {
+        m_salt = salt;
     }
+    // void SetModuliList(std::vector<typename VecType::Integer> moduli) {
+    //     m_moduli = moduli;
+    // }
+
+    VecType GenerateVector(const uint32_t size, const typename VecType::Integer& modulus) override;
+    typename VecType::Integer GenerateInteger() const override;
 
 private:
     std::vector<uint32_t> m_seed;
-    std::unique_ptr<PRNG> m_customPrng = nullptr;
-    u_int8_t m_qIndex;
+    u_int32_t m_salt = 0;
+    std::vector<typename VecType::Integer> m_moduli;
 };
 
 }  // namespace lbcrypto
+
+#include "math/discreteuniformgenerator-cr-impl.h"
 
 #endif  // LBCRYPTO_INC_MATH_DISCRETEUNIFORMGENERATORCR_H_

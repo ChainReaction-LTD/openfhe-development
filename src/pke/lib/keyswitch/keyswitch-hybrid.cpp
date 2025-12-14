@@ -92,14 +92,10 @@ EvalKey<DCRTPoly> KeySwitchHYBRID::KeySwitchGenInternal(const PrivateKey<DCRTPol
 
     const auto ns      = cryptoParams->GetNoiseScale();
     const DggType& dgg = cryptoParams->GetDiscreteGaussianGenerator();
-    //DiscreteUniformGeneratorCRImpl<typename DCRTPoly::Vector> dug;
-    DiscreteUniformGeneratorCRImpl<NativeVector> dug;
+    DiscreteUniformGeneratorCRImpl<NativeVector> dug(paramsQP);
     
-    std::vector<uint32_t> seed = lbcrypto::GenerateRandomSeed(4); // 32 byte seed
+    std::vector<uint32_t> seed = lbcrypto::GenerateRandomSeed(8); // 32 byte seed
     dug.SetSeed(seed);
-
-    // std::shared_ptr<PRNG> myShakePrng = std::make_shared<Shake128Engine>(seed);
-    // dug.SetCustomPRNG(myShakePrng);
 
     size_t numPartQ = cryptoParams->GetNumPartQ();
 
@@ -110,6 +106,8 @@ EvalKey<DCRTPoly> KeySwitchHYBRID::KeySwitchGenInternal(const PrivateKey<DCRTPol
     size_t numPerPartQ               = cryptoParams->GetNumPerPartQ();
 
     for (size_t part = 0; part < numPartQ; ++part) {
+        dug.SetSalt(part);
+        
         DCRTPoly a = (ekPrev == nullptr) ? DCRTPoly(dug, paramsQP, Format::EVALUATION) :  // single-key HE
                                            ekPrev->GetAVector()[part];                                      // threshold HE
         DCRTPoly e(dgg, paramsQP, Format::EVALUATION);

@@ -69,14 +69,14 @@ inline std::vector<uint32_t> GenerateRandomSeed(size_t size) {
 
 class Shake128Engine : public PRNG {
 public:
-    // Buffer size similar to Blake2Engine (42 x 32-bit integers)
+    // Buffer size (42 x 32-bit integers)
     enum { PRNG_BUFFER_SIZE = 42 };
 
     /**
      * @brief Constructor that accepts a seed vector
      * @param seed A vector of integers (or bytes) to seed the SHAKE state
      */
-    explicit Shake128Engine(const std::vector<uint32_t>& seed, u_int8_t q_index, u_int16_t seg_i) {
+    explicit Shake128Engine(const std::vector<uint32_t>& seed, u_int32_t salt, u_int8_t q_index, u_int16_t seg_i) {
         // 1. Initialize the SHAKE128 context
         shake128_init(&ctx);
 
@@ -84,6 +84,7 @@ public:
         // We cast the vector to bytes for absorption
         if (!seed.empty()) {
             shake_update(&ctx, reinterpret_cast<const void*>(seed.data()), seed.size() * sizeof(uint32_t));
+            shake_update(&ctx, reinterpret_cast<const void*>(&salt), sizeof(u_int32_t));
             shake_update(&ctx, reinterpret_cast<const void*>(&q_index), sizeof(u_int8_t));
             shake_update(&ctx, reinterpret_cast<const void*>(&seg_i), sizeof(uint16_t));
 
@@ -110,6 +111,7 @@ public:
         m_bufferIndex++;
         return result;
     }
+    
 
 private:
     void RefillBuffer() {

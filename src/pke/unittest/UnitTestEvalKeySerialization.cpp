@@ -38,9 +38,11 @@ protected:
 TEST_F(EvalKeySerializationTest, TestOptionalSeedLogic) {
     
     auto params = cc->GetElementParams();
-    std::vector<uint32_t> seed = lbcrypto::GenerateRandomSeed(4); // 32 byte seed
-    DiscreteUniformGeneratorCRImpl<NativeVector> dug;
+    DiscreteUniformGeneratorCRImpl<NativeVector> dug(params);
+    
+    std::vector<uint32_t> seed ={0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e};
     dug.SetSeed(seed);
+
     std::vector<DCRTPoly> av(3);
     std::vector<DCRTPoly> bv(3);
     for (size_t i = 0; i < 3; i++) {
@@ -50,8 +52,8 @@ TEST_F(EvalKeySerializationTest, TestOptionalSeedLogic) {
 
     // 1. Create a key manually with a seed
     EvalKey<DCRTPoly> keyWithSeed = std::make_shared<EvalKeyRelinImpl<DCRTPoly>>(cc);
+    keyWithSeed->SetAVector(av);
     keyWithSeed->SetBVector(bv);
-
     keyWithSeed->SetSeed(seed);
 
     // 2. Serialize (should effectively save [bk, true, seed])
@@ -66,6 +68,7 @@ TEST_F(EvalKeySerializationTest, TestOptionalSeedLogic) {
     EXPECT_TRUE(loadedKey1->GetSeed().has_value());
     EXPECT_EQ(loadedKey1->GetSeed().value(), seed);
     EXPECT_EQ(loadedKey1->GetBVector(), keyWithSeed->GetBVector());
+    EXPECT_EQ(loadedKey1->GetAVector().size(), keyWithSeed->GetAVector().size());
 
     // --- CASE 2: No Seed ---
 
