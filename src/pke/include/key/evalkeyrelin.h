@@ -235,18 +235,18 @@ public:
         ar(::cereal::make_nvp("ms", m_seed));
         if (m_seed.has_value()) {
             
+            // generate ak
             auto params = m_BKey[0].GetParams();
             DiscreteUniformGeneratorCRImpl<NativeVector> dug(params);
             dug.SetSeed(m_seed.value());
 
-
-            std::vector<DCRTPoly> av(3);
-            for (size_t i = 0; i < 3; i++) {
+            std::vector<DCRTPoly> av(m_BKey.size());
+            for (size_t i = 0; i < av.size(); i++) {
+                dug.SetSalt(i);
                 av[i] = DCRTPoly(dug, params, Format::EVALUATION);
             }
+            m_AKey = std::move(av);
 
-
-            // generate ak
         }
         else {
             // Seed missing -> We must LOAD AKey

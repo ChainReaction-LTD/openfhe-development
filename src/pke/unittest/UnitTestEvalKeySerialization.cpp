@@ -35,42 +35,53 @@ protected:
 
     }
 };
-TEST_F(EvalKeySerializationTest, TestOptionalSeedLogic) {
+TEST_F(EvalKeySerializationTest, TestHybridKeySwitchGenSerialization) {
     
-    auto params = cc->GetElementParams();
-    DiscreteUniformGeneratorCRImpl<NativeVector> dug(params);
-    
-    std::vector<uint32_t> seed ={0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e};
-    dug.SetSeed(seed);
+    // Call KeySwitchGenInternal
+    KeyPair<DCRTPoly> kp1 = cc->KeyGen();
+    KeyPair<DCRTPoly> kp2 = cc->KeyGen();
 
+    // Create a KeySwitchHYBRID instance
+    std::shared_ptr<KeySwitchBase<DCRTPoly>> keySwitchImpl = 
+        std::make_shared<KeySwitchHYBRID>();
+
+    // Generate the eval key
+    EvalKey<DCRTPoly> ek = keySwitchImpl->KeySwitchGenInternal(kp1.secretKey, kp2.secretKey);
+
+    // Test 1: Verify the key has valid vectors
+    EXPECT_TRUE(ek != nullptr);
+    EXPECT_FALSE(ek->GetAVector().empty());
+    EXPECT_FALSE(ek->GetBVector().empty());
+    EXPECT_EQ(ek->GetAVector().size(), ek->GetBVector().size());
+
+    // 2. Serialize (should effectively save [bk, true, seed])
+    std::stringstream ss1;
+    Serial::Serialize(ek, ss1, SerType::BINARY);
+
+    // 3. Deserialize
+    EvalKey<DCRTPoly> loadedKey1;
+    Serial::Deserialize(loadedKey1, ss1, SerType::BINARY);
+    
+     // 4. Verify seed and AVector recovered
+    EXPECT_TRUE(loadedKey1->GetSeed().has_value());
+    EXPECT_EQ(loadedKey1->GetSeed().value(), ek->GetSeed());
+    EXPECT_EQ(loadedKey1->GetBVector(), ek->GetBVector());
+    EXPECT_EQ(loadedKey1->GetAVector(), ek->GetAVector());
+
+  
+}
+
+TEST_F(EvalKeySerializationTest, TestNoSeedSerialization) {
+
+      auto params = cc->GetElementParams();
+    DiscreteUniformGeneratorCRImpl<NativeVector> dug(params);
+  
     std::vector<DCRTPoly> av(3);
     std::vector<DCRTPoly> bv(3);
     for (size_t i = 0; i < 3; i++) {
         av[i] = DCRTPoly(dug, params, Format::EVALUATION);
         bv[i] = DCRTPoly(dug, params, Format::EVALUATION);
     }
-
-    // 1. Create a key manually with a seed
-    EvalKey<DCRTPoly> keyWithSeed = std::make_shared<EvalKeyRelinImpl<DCRTPoly>>(cc);
-    keyWithSeed->SetAVector(av);
-    keyWithSeed->SetBVector(bv);
-    keyWithSeed->SetSeed(seed);
-
-    // 2. Serialize (should effectively save [bk, true, seed])
-    std::stringstream ss1;
-    Serial::Serialize(keyWithSeed, ss1, SerType::BINARY);
-
-    // 3. Deserialize
-    EvalKey<DCRTPoly> loadedKey1;
-    Serial::Deserialize(loadedKey1, ss1, SerType::BINARY);
-
-    // 4. Verify seed was recovered
-    EXPECT_TRUE(loadedKey1->GetSeed().has_value());
-    EXPECT_EQ(loadedKey1->GetSeed().value(), seed);
-    EXPECT_EQ(loadedKey1->GetBVector(), keyWithSeed->GetBVector());
-    EXPECT_EQ(loadedKey1->GetAVector().size(), keyWithSeed->GetAVector().size());
-
-    // --- CASE 2: No Seed ---
 
     // 1. Create a key without a seed
     EvalKey<DCRTPoly> keyNoSeed = std::make_shared<EvalKeyRelinImpl<DCRTPoly>>(cc);
