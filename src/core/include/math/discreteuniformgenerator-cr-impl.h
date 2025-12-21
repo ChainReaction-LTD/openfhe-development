@@ -44,31 +44,14 @@
 
 namespace lbcrypto {
 
-inline bool is_normalize(int32_t x, uint32_t q) {
-    // Rust: let qh = q as i64 / 2;
-    int64_t qh = static_cast<int64_t>(q) / 2;
+inline bool is_normalize(int32_t x, NativeVector::Integer q) {
+    NativeVector::Integer qh = q / 2;
     
-    // Rust: let x = x as i64;
     int64_t x_64 = static_cast<int64_t>(x);
 
-    // Rust: -qh <= x && x <= qh
     return (-qh <= x_64) && (x_64 <= qh);
 }
 
-
-// Helper to mimic i32::from_le_bytes specifically for Little Endian
-// This ensures code works correctly even on Big Endian machines.
-inline int32_t i32_from_le_bytes(const uint8_t* bytes) {
-    uint32_t val = 
-        static_cast<uint32_t>(bytes[0]) |
-        (static_cast<uint32_t>(bytes[1]) << 8) |
-        (static_cast<uint32_t>(bytes[2]) << 16) |
-        (static_cast<uint32_t>(bytes[3]) << 24);
-    
-    int32_t result;
-    std::memcpy(&result, &val, sizeof(result));
-    return result;
-}
 
 // -----------------------------------------------------------------------------
 // Function: extract_signed_b_bits
@@ -92,42 +75,6 @@ inline int32_t extract_signed_b_bits(int32_t w, size_t b) {
     
     // Combine and cast back to signed
     return static_cast<int32_t>(msb_shifted | static_cast<uint32_t>(low_bits));
-}
-
-// -----------------------------------------------------------------------------
-// Function: extract_32_words_from_digest
-// -----------------------------------------------------------------------------
-inline std::array<int32_t, 32> extract_32_words_from_digest(const std::array<uint8_t, 168>& digest, uint32_t q) {
-    std::vector<int32_t> valid_integers;
-    valid_integers.reserve(32);
-
-    // b = ceil(log2(q))
-    size_t b = static_cast<size_t>(std::ceil(std::log2(static_cast<double>(q))));
-
-    // Rust: digest.chunks_exact(4)
-    // 168 bytes / 4 bytes per chunk = 42 chunks exactly.
-    for (size_t i = 0; i < 42; ++i) {
-        size_t offset = i * 4;
-        
-        // Read 4 bytes (Little Endian)
-        int32_t num = i32_from_le_bytes(&digest[offset]);
-
-        int32_t x = extract_signed_b_bits(num, b);
-
-        if (is_normalize(x, q)) {
-            valid_integers.push_back(x);
-        }
-
-        // Return immediately if we found 32 valid integers
-        if (valid_integers.size() == 32) {
-            std::array<int32_t, 32> result;
-            std::memcpy(result.data(), valid_integers.data(), 32 * sizeof(int32_t));
-            return result;
-        }
-    }
-
-    // Rust: Err(ExecuteError::PrngRejectSegment)?
-    OPENFHE_THROW("Prng Reject Segment");
 }
 
 
@@ -157,28 +104,33 @@ inline NativeVector DiscreteUniformGeneratorCRImpl::GenerateVector(const uint32_
     NativeVector v(size, this->m_modulus);
     std::uniform_int_distribution<uint32_t> dist(DUG_CHUNK_MIN, DUG_CHUNK_MAX);
     int8_t qIndex = FindQindex(this->m_moduli,this->m_modulus);
-    
+
+    size_t b = static_cast<size_t>(std::ceil(std::log2(static_cast<double>(static_cast<unsigned long>(0x7e0001)))));
+
     for (uint16_t seg_i = 0; seg_i < 2048; ++seg_i){
         std::unique_ptr<PRNG> shake128engine = std::make_unique<Shake128Engine>(m_seed,m_salt,qIndex,seg_i);
 
-        std::uniform_int_distribution<uint32_t> dist(DUG_CHUNK_MIN, DUG_CHUNK_MAX);
-        
-        std::array<uint8_t, 168> digest;
-        
-        // Generate 42 32-bit words and store as little-endian bytes in digest
+        size_t valid_words_idx = 0;  
+     
         for (uint32_t i = 0; i < 42; ++i){
             uint32_t word = dist(*shake128engine);
-            // Convert 32-bit word to 4 bytes (little-endian)
-            digest[4*i]     = static_cast<uint8_t>(word & 0xFF);
-            digest[4*i + 1] = static_cast<uint8_t>((word >> 8) & 0xFF);
-            digest[4*i + 2] = static_cast<uint8_t>((word >> 16) & 0xFF);
-            digest[4*i + 3] = static_cast<uint8_t>((word >> 24) & 0xFF);
-        }
-        std::array<int32_t, 32> words = extract_32_words_from_digest(digest, 0x7e0001);
 
-        for (uint32_t i = 0; i < 32; ++i){
-            v[(seg_i*32) + i] = words[i];
+            int32_t x = extract_signed_b_bits(word, b);
+
+            if (is_normalize(x, 0x7e0001)) {
+                v[(seg_i*32) + valid_words_idx] = x;
+                valid_words_idx++;
+            }
+            if(valid_words_idx==32){
+                break;
+            }
+            
         }
+        // if we tried 42 words and didn't reach to 32 valid words
+        if(valid_words_idx < 32){
+             OPENFHE_THROW("Prng Reject Segment");
+        }
+      
     }
 
 
