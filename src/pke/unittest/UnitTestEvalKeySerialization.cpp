@@ -72,8 +72,8 @@ TEST_F(EvalKeySerializationTest, TestHybridKeySwitchGenSerialization) {
 
 TEST_F(EvalKeySerializationTest, TestNoSeedSerialization) {
 
-      auto params = cc->GetElementParams();
-    DiscreteUniformGeneratorCRImpl dug(params);
+    auto params = cc->GetElementParams();
+    DiscreteUniformGeneratorImpl<NativeVector> dug;
   
     std::vector<DCRTPoly> av(3);
     std::vector<DCRTPoly> bv(3);

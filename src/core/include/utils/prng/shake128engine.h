@@ -77,9 +77,7 @@ public:
      * @param seed A vector of integers (or bytes) to seed the SHAKE state
      */
     explicit Shake128Engine(const std::vector<uint32_t>& seed, u_int32_t salt, u_int8_t q_index, u_int16_t seg_i) {
-        if(seed.size()!=8){  // 32 bytes
-            OPENFHE_THROW("Seed must be of size 8 (32 bytes)");
-        }
+        assert(seed.size()==8); // 32 bytes
 
         // 1. Initialize the SHAKE128 context
         shake128_init(&ctx);
