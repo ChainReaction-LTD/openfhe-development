@@ -77,19 +77,22 @@ public:
      * @param seed A vector of integers (or bytes) to seed the SHAKE state
      */
     explicit Shake128Engine(const std::vector<uint32_t>& seed, u_int32_t salt, u_int8_t q_index, u_int16_t seg_i) {
+        if(seed.size()!=8){  // 32 bytes
+            OPENFHE_THROW("Seed must be of size 8 (32 bytes)");
+        }
+
         // 1. Initialize the SHAKE128 context
         shake128_init(&ctx);
 
-        // 2. Absorb the seed (inject entropy)
-        // We cast the vector to bytes for absorption
-        if (!seed.empty()) {
-            shake_update(&ctx, reinterpret_cast<const void*>(seed.data()), seed.size() * sizeof(uint32_t));
-            shake_update(&ctx, reinterpret_cast<const void*>(&salt), sizeof(u_int32_t));
-            shake_update(&ctx, reinterpret_cast<const void*>(&q_index), sizeof(u_int8_t));
-            shake_update(&ctx, reinterpret_cast<const void*>(&seg_i), sizeof(uint16_t));
+        // 2. Absorb the seed
+        // We cast the uint32_t vector to bytes for absorption
+        shake_update(&ctx, reinterpret_cast<const void*>(seed.data()), seed.size() * sizeof(uint32_t));
+        shake_update(&ctx, reinterpret_cast<const void*>(&salt), sizeof(u_int32_t));
+        shake_update(&ctx, reinterpret_cast<const void*>(&q_index), sizeof(u_int8_t));
+        shake_update(&ctx, reinterpret_cast<const void*>(&seg_i), sizeof(uint16_t));
 
-            shake_xof(&ctx);
-        }
+        shake_xof(&ctx);
+        
 
         // 3. Prepare the buffer state
         m_bufferIndex = PRNG_BUFFER_SIZE;  // Force a refill on first use

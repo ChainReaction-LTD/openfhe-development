@@ -92,7 +92,7 @@ EvalKey<DCRTPoly> KeySwitchHYBRID::KeySwitchGenInternal(const PrivateKey<DCRTPol
 
     const auto ns      = cryptoParams->GetNoiseScale();
     const DggType& dgg = cryptoParams->GetDiscreteGaussianGenerator();
-    DiscreteUniformGeneratorCRImpl<NativeVector> dug(paramsQP);
+    DiscreteUniformGeneratorCRImpl dug(paramsQP);
     
     std::vector<uint32_t> seed = lbcrypto::GenerateRandomSeed(8); // 32 byte seed
     dug.SetSeed(seed);

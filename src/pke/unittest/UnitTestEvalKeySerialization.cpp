@@ -37,7 +37,6 @@ protected:
 };
 TEST_F(EvalKeySerializationTest, TestHybridKeySwitchGenSerialization) {
     
-    // Call KeySwitchGenInternal
     KeyPair<DCRTPoly> kp1 = cc->KeyGen();
     KeyPair<DCRTPoly> kp2 = cc->KeyGen();
 
@@ -57,7 +56,7 @@ TEST_F(EvalKeySerializationTest, TestHybridKeySwitchGenSerialization) {
     // 2. Serialize (should effectively save [bk, true, seed])
     std::stringstream ss1;
     Serial::Serialize(ek, ss1, SerType::BINARY);
-
+    std::cout << "Size of ss1: " << sizeof(ss1) << " bytes" << std::endl;
     // 3. Deserialize
     EvalKey<DCRTPoly> loadedKey1;
     Serial::Deserialize(loadedKey1, ss1, SerType::BINARY);
@@ -74,7 +73,7 @@ TEST_F(EvalKeySerializationTest, TestHybridKeySwitchGenSerialization) {
 TEST_F(EvalKeySerializationTest, TestNoSeedSerialization) {
 
       auto params = cc->GetElementParams();
-    DiscreteUniformGeneratorCRImpl<NativeVector> dug(params);
+    DiscreteUniformGeneratorCRImpl dug(params);
   
     std::vector<DCRTPoly> av(3);
     std::vector<DCRTPoly> bv(3);
@@ -91,6 +90,8 @@ TEST_F(EvalKeySerializationTest, TestNoSeedSerialization) {
     // 2. Serialize (should effectively save [bk, false, ak_data...])
     std::stringstream ss2;
     Serial::Serialize(keyNoSeed, ss2, SerType::BINARY);
+    
+    std::cout << "Size of ss2: " << sizeof(ss2) << " bytes" << std::endl;
 
     // 3. Deserialize
     EvalKey<DCRTPoly> loadedKey2;
