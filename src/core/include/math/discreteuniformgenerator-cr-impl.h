@@ -131,8 +131,7 @@ inline std::array<int32_t, 32> extract_32_words_from_digest(const std::array<uin
 }
 
 
-template <typename VecType>
-inline int8_t FindQindex(const std::vector<typename VecType::Integer>& moduliList,const typename VecType::Integer& modulus){
+inline int8_t FindQindex(const std::vector<NativeVector::Integer>& moduliList,const NativeVector::Integer& modulus){
     for (size_t i = 0; i < moduliList.size(); i++)
     {
         if(moduliList[i]==modulus){
@@ -142,24 +141,22 @@ inline int8_t FindQindex(const std::vector<typename VecType::Integer>& moduliLis
     return -1;    
 }
 
-template<typename VecType>
-typename VecType::Integer DiscreteUniformGeneratorCRImpl<VecType>::GenerateInteger() const{
+inline NativeVector::Integer DiscreteUniformGeneratorCRImpl::GenerateInteger() const{
     OPENFHE_THROW("GenerateInteger operation not supported");
 }
 
 
-template <typename VecType>
-VecType DiscreteUniformGeneratorCRImpl<VecType>::GenerateVector(const uint32_t size,
-                                                              const typename VecType::Integer& modulus){
+inline NativeVector DiscreteUniformGeneratorCRImpl::GenerateVector(const uint32_t size,
+                                                              const NativeVector::Integer& modulus){
     this->SetModulus(modulus);
 
     if (size != 65536)
         OPENFHE_THROW("vector size must be 65536");
     
     
-    VecType v(size, this->m_modulus);
+    NativeVector v(size, this->m_modulus);
     std::uniform_int_distribution<uint32_t> dist(DUG_CHUNK_MIN, DUG_CHUNK_MAX);
-    int8_t qIndex = FindQindex<VecType>(this->m_moduli,this->m_modulus);
+    int8_t qIndex = FindQindex(this->m_moduli,this->m_modulus);
     
     for (uint16_t seg_i = 0; seg_i < 2048; ++seg_i){
         std::unique_ptr<PRNG> shake128engine = std::make_unique<Shake128Engine>(m_seed,m_salt,qIndex,seg_i);
