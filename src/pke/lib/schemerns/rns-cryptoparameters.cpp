@@ -34,6 +34,7 @@
 #include "math/dftransform.h"
 #include "cryptocontext.h"
 #include "schemerns/rns-cryptoparameters.h"
+#include "utils/cr-moduli-helper.h"
 
 #include <vector>
 #include <memory>
@@ -135,33 +136,47 @@ void CryptoParametersRNS::PrecomputeCRTTables(KeySwitchTechnique ksTech, Scaling
         // Select number of primes in auxiliary CRT basis
         uint32_t sizeP = static_cast<uint32_t>(std::ceil(static_cast<double>(maxBits) / auxBits));
 
-        uint64_t primeStep = FindAuxPrimeStep();
-
+       
         // Choose special primes in auxiliary basis and compute their roots
         // moduliP holds special primes p1, p2, ..., pk
         // m_modulusP holds the product of special primes P = p1*p2*...pk
         std::vector<NativeInteger> moduliP(sizeP);
         std::vector<NativeInteger> rootsP(sizeP);
-        // firstP contains a prime whose size is PModSize.
-        NativeInteger firstP = FirstPrime<NativeInteger>(auxBits, primeStep);
-        NativeInteger pPrev  = firstP;
         BigInteger modulusP(1);
-        for (uint32_t i = 0; i < sizeP; i++) {
-            // The following loop makes sure that moduli in
-            // P and Q are different
-            bool foundInQ = false;
-            do {
-                moduliP[i] = PreviousPrime<NativeInteger>(pPrev, primeStep);
-                foundInQ   = false;
-                for (usint j = 0; j < sizeQ; j++)
-                    if (moduliP[i] == moduliQ[j])
-                        foundInQ = true;
+        #ifdef WITH_CR_MODULI
+            // Custom Chain Reaction implementation with predefined moduli
+            const std::map<int, std::vector<uint32_t>>& bitlen_to_modului_map = CRModuliHelper::GetCRModuliMap();
+            //NativeInteger firstP = bitlen_map.at(30)[sizeQ+1];
+            for (size_t i = 0; i < sizeP; i++)
+            {
+                moduliP[i]= bitlen_to_modului_map.at(30)[sizeQ+i+1];
+                modulusP *= moduliP[i];
+                rootsP[i] = RootOfUnity<NativeInteger>(2 * n, moduliP[i]);
+            }
+        #else
+            uint64_t primeStep = FindAuxPrimeStep();
+            // firstP contains a prime whose size is PModSize.
+            NativeInteger firstP = FirstPrime<NativeInteger>(auxBits, primeStep);
+            NativeInteger pPrev  = firstP;
+        
+            for (uint32_t i = 0; i < sizeP; i++) {
+                // The following loop makes sure that moduli in
+                // P and Q are different
+                bool foundInQ = false;
+                do {
+                    moduliP[i] = PreviousPrime<NativeInteger>(pPrev, primeStep);
+                    foundInQ   = false;
+                    for (usint j = 0; j < sizeQ; j++)
+                        if (moduliP[i] == moduliQ[j])
+                            foundInQ = true;
+                    pPrev = moduliP[i];
+                } while (foundInQ);
+                rootsP[i] = RootOfUnity<NativeInteger>(2 * n, moduliP[i]);
+                modulusP *= moduliP[i];
                 pPrev = moduliP[i];
-            } while (foundInQ);
-            rootsP[i] = RootOfUnity<NativeInteger>(2 * n, moduliP[i]);
-            modulusP *= moduliP[i];
-            pPrev = moduliP[i];
-        }
+            }
+        #endif
+       
 
         // Store the created moduli and roots in m_paramsP
         m_paramsP = std::make_shared<ILDCRTParams<BigInteger>>(2 * n, moduliP, rootsP);
