@@ -56,7 +56,7 @@ TEST_F(EvalKeySerializationTest, TestHybridKeySwitchGenSerialization) {
     // 2. Serialize (should effectively save [bk, true, seed])
     std::stringstream ss1;
     Serial::Serialize(ek, ss1, SerType::BINARY);
-    std::cout << "Size of ss1: " << sizeof(ss1) << " bytes" << std::endl;
+    std::cout << "Size of ss1: " << ss1.str().size() << " bytes" << std::endl;
     // 3. Deserialize
     EvalKey<DCRTPoly> loadedKey1;
     Serial::Deserialize(loadedKey1, ss1, SerType::BINARY);
@@ -91,7 +91,7 @@ TEST_F(EvalKeySerializationTest, TestNoSeedSerialization) {
     std::stringstream ss2;
     Serial::Serialize(keyNoSeed, ss2, SerType::BINARY);
     
-    std::cout << "Size of ss2: " << sizeof(ss2) << " bytes" << std::endl;
+    std::cout << "Size of ss2: " << ss2.str().size() << " bytes" << std::endl;
 
     // 3. Deserialize
     EvalKey<DCRTPoly> loadedKey2;
