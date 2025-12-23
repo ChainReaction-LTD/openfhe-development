@@ -23,8 +23,8 @@ protected:
         CCParams<CryptoContextCKKSRNS> parameters;
         // CKKS REQUIRED PARAMETERS
         parameters.SetMultiplicativeDepth(1);    // Usually required for CKKS
-        parameters.SetScalingModSize(50);        // Usually required for CKKS
-        parameters.SetFirstModSize(60);          // Usually required for CKKS
+        parameters.SetScalingModSize(30);        // Usually required for CKKS
+        parameters.SetFirstModSize(30);          // Usually required for CKKS
         parameters.SetSecurityLevel(HEStd_NotSet);
         parameters.SetRingDim(65536);
 
