@@ -81,10 +81,16 @@ option(WITH_REDUCED_NOISE "Enable reduced noise within HKS and BFV HPSPOVERQ mod
 option(USE_MACPORTS "Use MacPorts installed packages"                                  OFF )
 # Chain Reaction flags
 option(WITH_CR_PRNG "Enable Chain Reaction custom PRNG" OFF)
+option(WITH_CR_MODULI "Enable Chain Reaction predefined moduli" OFF)
 
 if(WITH_CR_PRNG)
     add_definitions(-DWITH_CR_PRNG)
     message(STATUS "Chain Reaction PRNG is enabled")
+endif()
+
+if(WITH_CR_MODULI)
+    add_definitions(-DWITH_CR_MODULI)
+    message(STATUS "Chain Reaction predefined moduli is enabled")
 endif()
 
 # Set required number of bits for native integer in build by setting NATIVE_SIZE to 64 or 128
@@ -118,6 +124,7 @@ message(STATUS "WITH_REDUCED_NOISE: ${WITH_REDUCED_NOISE}")
 message(STATUS "USE_MACPORTS:       ${USE_MACPORTS}")
 message(STATUS "USE_MACPORTS:       ${USE_MACPORTS}")
 message(STATUS "WITH_CR_PRNG:       ${WITH_CR_PRNG}")
+message(STATUS "WITH_CR_MODULI:       ${WITH_CR_MODULI}")
 
 #--------------------------------------------------------------------
 # Compiler logic

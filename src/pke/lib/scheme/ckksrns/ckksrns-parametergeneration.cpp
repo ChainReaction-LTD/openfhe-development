@@ -38,6 +38,7 @@ CKKS implementation. See https://eprint.iacr.org/2020/1118 for details.
 #include "cryptocontext.h"
 #include "scheme/ckksrns/ckksrns-cryptoparameters.h"
 #include "scheme/ckksrns/ckksrns-parametergeneration.h"
+#include "utils/cr-moduli-helper.h"
 
 #include <vector>
 #include <memory>
@@ -175,8 +176,14 @@ bool ParameterGenerationCKKSRNS::ParamsGenCKKSRNSInternal(std::shared_ptr<Crypto
         CompositePrimeModuliGen(moduliQ, rootsQ, compositeDegree, numPrimes, firstModSize, dcrtBits, cyclOrder,
                                 registerWordSize);
     }
-    else
+    else {
+#ifdef WITH_CR_MODULI
+        // Custom Chain Reaction implementation with predefined moduli
+        SinglePrimeModuliGenCR(moduliQ, rootsQ, scalTech, numPrimes, firstModSize, dcrtBits, cyclOrder, extraModSize);
+#else
         SinglePrimeModuliGen(moduliQ, rootsQ, scalTech, numPrimes, firstModSize, dcrtBits, cyclOrder, extraModSize);
+#endif
+    }
 
     auto paramsDCRT = std::make_shared<ILDCRTParams<BigInteger>>(cyclOrder, moduliQ, rootsQ);
 
@@ -384,7 +391,7 @@ void ParameterGenerationCKKSRNS::CompositePrimeModuliGen(std::vector<NativeInteg
                 flag = false;
             }
         }  // for loop
-    }      // if numPrimes > 1
+    }  // if numPrimes > 1
 
     for (uint32_t d = 1, remBits = firstModSize; d <= compositeDegree; ++d) {
         uint32_t qBitSize = std::ceil(static_cast<double>(remBits) / (compositeDegree - d + 1));
@@ -411,6 +418,24 @@ void ParameterGenerationCKKSRNS::CompositePrimeModuliGen(std::vector<NativeInteg
     }
 
     return;
+}
+
+void ParameterGenerationCKKSRNS::SinglePrimeModuliGenCR(std::vector<NativeInteger>& moduliQ,
+                                                        std::vector<NativeInteger>& rootsQ, ScalingTechnique scalTech,
+                                                        uint32_t numPrimes, uint32_t firstModSize, uint32_t dcrtBits,
+                                                        uint32_t cyclOrder, uint32_t extraModSize) const {
+
+                                                
+    const std::map<int, std::vector<uint32_t>>& bitlen_to_modului_map = CRModuliHelper::GetCRModuliMap();
+    moduliQ[numPrimes] = NativeInteger{bitlen_to_modului_map.at(dcrtBits)[0]};
+    rootsQ[numPrimes]  = RootOfUnity(cyclOrder, moduliQ[numPrimes]);
+
+    for (size_t i = 0; i < numPrimes; i++) {
+        // i+1 to prevent same moduli when dcrtBits = firstModSize
+        moduliQ[i] = NativeInteger{bitlen_to_modului_map.at(firstModSize)[i + 1]};
+        rootsQ[i]  = RootOfUnity(cyclOrder, moduliQ[i]);
+    }
+
 }
 
 void ParameterGenerationCKKSRNS::SinglePrimeModuliGen(std::vector<NativeInteger>& moduliQ,

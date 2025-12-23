@@ -25,6 +25,7 @@ protected:
         parameters.SetMultiplicativeDepth(1);    // Usually required for CKKS
         parameters.SetScalingModSize(30);        // Usually required for CKKS
         parameters.SetFirstModSize(30);          // Usually required for CKKS
+
         parameters.SetSecurityLevel(HEStd_NotSet);
         parameters.SetRingDim(65536);
 
