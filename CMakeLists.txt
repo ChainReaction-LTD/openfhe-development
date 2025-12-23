@@ -79,6 +79,13 @@ option(WITH_COVTEST "Turn on to enable coverage testing"                        
 option(WITH_NOISE_DEBUG "Use only when running lattice estimator; not for production"  OFF )
 option(WITH_REDUCED_NOISE "Enable reduced noise within HKS and BFV HPSPOVERQ modes"    OFF )
 option(USE_MACPORTS "Use MacPorts installed packages"                                  OFF )
+# Chain Reaction flags
+option(WITH_CR_PRNG "Enable Chain Reaction custom PRNG" OFF)
+
+if(WITH_CR_PRNG)
+    add_definitions(-DWITH_CR_PRNG)
+    message(STATUS "Chain Reaction PRNG is enabled")
+endif()
 
 # Set required number of bits for native integer in build by setting NATIVE_SIZE to 64 or 128
 if(NOT NATIVE_SIZE)
@@ -109,6 +116,8 @@ message(STATUS "WITH_COVTEST:       ${WITH_COVTEST}")
 message(STATUS "WITH_NOISE_DEBUG:   ${WITH_NOISE_DEBUG}")
 message(STATUS "WITH_REDUCED_NOISE: ${WITH_REDUCED_NOISE}")
 message(STATUS "USE_MACPORTS:       ${USE_MACPORTS}")
+message(STATUS "USE_MACPORTS:       ${USE_MACPORTS}")
+message(STATUS "WITH_CR_PRNG:       ${WITH_CR_PRNG}")
 
 #--------------------------------------------------------------------
 # Compiler logic
