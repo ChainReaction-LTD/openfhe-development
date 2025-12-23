@@ -92,8 +92,13 @@ EvalKey<DCRTPoly> KeySwitchHYBRID::KeySwitchGenInternal(const PrivateKey<DCRTPol
 
     const auto ns      = cryptoParams->GetNoiseScale();
     const DggType& dgg = cryptoParams->GetDiscreteGaussianGenerator();
+    #ifdef WITH_CR_PRNG
+    // Custom Chain Reaction implementation with explicit seeding
     std::vector<uint32_t> seed = lbcrypto::GenerateRandomSeed(8); // 32 byte seed
-    DiscreteUniformGeneratorCRImpl dug(paramsQP,seed);
+    DiscreteUniformGeneratorCRImpl dug(paramsQP, seed);
+    #else
+    DugType dug;
+    #endif
 
     size_t numPartQ = cryptoParams->GetNumPartQ();
 
@@ -104,7 +109,10 @@ EvalKey<DCRTPoly> KeySwitchHYBRID::KeySwitchGenInternal(const PrivateKey<DCRTPol
     size_t numPerPartQ               = cryptoParams->GetNumPerPartQ();
 
     for (size_t part = 0; part < numPartQ; ++part) {
+        #ifdef WITH_CR_PRNG
+        // Custom Chain Reaction implementation with explicit seeding
         dug.SetSalt(part);
+        #endif
         
         DCRTPoly a = (ekPrev == nullptr) ? DCRTPoly(dug, paramsQP, Format::EVALUATION) :  // single-key HE
                                            ekPrev->GetAVector()[part];                                      // threshold HE
@@ -136,7 +144,10 @@ EvalKey<DCRTPoly> KeySwitchHYBRID::KeySwitchGenInternal(const PrivateKey<DCRTPol
 
     ek->SetAVector(std::move(av));
     ek->SetBVector(std::move(bv));
+    #ifdef WITH_CR_PRNG
+    // Custom Chain Reaction implementation with explicit seeding
     ek->SetSeed(std::move(seed));
+    #endif
     ek->SetKeyTag(newKey->GetKeyTag());
     return ek;
 }
