@@ -103,7 +103,6 @@ inline NativeVector DiscreteUniformGeneratorCRImpl::GenerateVector(const uint32_
     std::uniform_int_distribution<uint32_t> dist(DUG_CHUNK_MIN, DUG_CHUNK_MAX);
     int8_t qIndex = FindQindex(this->m_moduli,this->m_modulus);
 
-    //size_t b = static_cast<size_t>(std::ceil(std::log2(0x7e0001)));
     size_t b = static_cast<size_t>(std::ceil(std::log2(modulus.ConvertToDouble())));
 
     for (uint16_t seg_i = 0; seg_i < 2048; ++seg_i){
@@ -116,11 +115,10 @@ inline NativeVector DiscreteUniformGeneratorCRImpl::GenerateVector(const uint32_
 
             int32_t x = extract_signed_b_bits(word, b);
 
-            // if (is_normalize(x, 0x7e0001)) {
-            //     v[(seg_i*32) + valid_words_idx] = x;
-            //     valid_words_idx++;
-            // }
             if (is_normalize(x, modulus)) {
+                 if (x < 0) {
+                    x += modulus.ConvertToInt();
+                }
                 v[(seg_i*32) + valid_words_idx] = x;
                 valid_words_idx++;
             }
