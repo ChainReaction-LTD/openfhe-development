@@ -25,6 +25,7 @@ protected:
         parameters.SetMultiplicativeDepth(1);    // Usually required for CKKS
         parameters.SetScalingModSize(30);        // Usually required for CKKS
         parameters.SetFirstModSize(30);          // Usually required for CKKS
+        
 
         parameters.SetSecurityLevel(HEStd_NotSet);
         parameters.SetRingDim(65536);
@@ -36,6 +37,21 @@ protected:
 
     }
 };
+
+TEST_F(EvalKeySerializationTest, TestCRPRNG) {
+    
+    std::vector<uint32_t> seed = std::vector<uint32_t>{0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e,0x5e5e5e5e};
+    auto params = cc->GetCryptoParameters()->GetElementParams();
+    DiscreteUniformGeneratorCRImpl dug(params, seed);
+
+    std::vector<DCRTPoly> av(params->GetParams().size());
+    for (size_t i = 0; i < params->GetParams().size(); i++) {
+        dug.SetSalt(i);
+        av[i] = DCRTPoly(dug, params, Format::EVALUATION);
+    }
+
+}
+
 TEST_F(EvalKeySerializationTest, TestHybridKeySwitchGenSerialization) {
     
     KeyPair<DCRTPoly> kp1 = cc->KeyGen();

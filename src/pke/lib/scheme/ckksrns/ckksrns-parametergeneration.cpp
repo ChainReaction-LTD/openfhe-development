@@ -115,11 +115,17 @@ bool ParameterGenerationCKKSRNS::ParamsGenCKKSRNSInternal(std::shared_ptr<Crypto
 
     //// HE Standards compliance logic/check
     SecurityLevel stdLevel = cryptoParamsCKKSRNS->GetStdLevel();
-    // TODO Duhyeong: Let's check if auxBits = registerWordSize makes an error in the P prime generation.
+#ifdef WITH_CR_MODULI
+    // Match the scaling mod size (we want P approx Q)
+    uint32_t auxBits = scalingModSize;
+#else
+    uint32_t auxBits = scalingModSize;
+    // // TODO Duhyeong: Let's check if auxBits = registerWordSize makes an error in the P prime generation.
     uint32_t auxBits =
         ((scalTech == COMPOSITESCALINGAUTO || scalTech == COMPOSITESCALINGMANUAL) && registerWordSize <= AUXMODSIZE) ?
             (registerWordSize - 1) :
             AUXMODSIZE;
+#endif
     uint32_t n = cyclOrder / 2;
 
     // GAUSSIAN security constraint
@@ -424,16 +430,36 @@ void ParameterGenerationCKKSRNS::SinglePrimeModuliGenCR(std::vector<NativeIntege
                                                         std::vector<NativeInteger>& rootsQ, ScalingTechnique scalTech,
                                                         uint32_t numPrimes, uint32_t firstModSize, uint32_t dcrtBits,
                                                         uint32_t cyclOrder, uint32_t extraModSize) const {
-
-                                                
     const std::map<int, std::vector<uint32_t>>& bitlen_to_modului_map = CRModuliHelper::GetCRModuliMap();
-    moduliQ[numPrimes] = NativeInteger{bitlen_to_modului_map.at(dcrtBits)[0]};
-    rootsQ[numPrimes]  = RootOfUnity(cyclOrder, moduliQ[numPrimes]);
 
+    // 1. Handle the main RNS chain (indices 0 to numPrimes - 1)
     for (size_t i = 0; i < numPrimes; i++) {
-        // i+1 to prevent same moduli when dcrtBits = firstModSize
-        moduliQ[i] = NativeInteger{bitlen_to_modului_map.at(firstModSize)[i + 1]};
+        uint32_t currentBits = (i == 0) ? firstModSize : dcrtBits;
+
+        // Safety check: Does the map contain this bit size?
+        if (bitlen_to_modului_map.find(currentBits) == bitlen_to_modului_map.end()) {
+            OPENFHE_THROW("CRModuliHelper: No primes found for bits: " + std::to_string(currentBits));
+        }
+
+        // We use index 'i' directly from the map.
+        // NOTE: Ensure P generation in PrecomputeCRTTables starts AFTER 'numPrimes'.
+        moduliQ[i] = NativeInteger{bitlen_to_modului_map.at(currentBits)[i]};
         rootsQ[i]  = RootOfUnity(cyclOrder, moduliQ[i]);
+    }
+
+    // 2. Handle Extra Modulus (if required by Scaling Technique)
+    // Only FLEXIBLEAUTOEXT uses an extra modulus at the end of the chain for Q.
+    if (scalTech == FLEXIBLEAUTOEXT) {
+        // Ensure the vector is big enough
+        if (moduliQ.size() <= numPrimes) {
+            moduliQ.resize(numPrimes + 1);
+            rootsQ.resize(numPrimes + 1);
+        }
+        
+
+       
+        moduliQ[numPrimes] = NativeInteger{bitlen_to_modului_map.at(dcrtBits)[numPrimes]};
+        rootsQ[numPrimes]  = RootOfUnity(cyclOrder, moduliQ[numPrimes]);
     }
 
 }

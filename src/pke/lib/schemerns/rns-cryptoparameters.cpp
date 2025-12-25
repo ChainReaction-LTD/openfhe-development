@@ -135,8 +135,9 @@ void CryptoParametersRNS::PrecomputeCRTTables(KeySwitchTechnique ksTech, Scaling
         }
         // Select number of primes in auxiliary CRT basis
         uint32_t sizeP = static_cast<uint32_t>(std::ceil(static_cast<double>(maxBits) / auxBits));
-
-       
+        if(auxBits<32){
+            sizeP++;
+        }
         // Choose special primes in auxiliary basis and compute their roots
         // moduliP holds special primes p1, p2, ..., pk
         // m_modulusP holds the product of special primes P = p1*p2*...pk
@@ -146,10 +147,13 @@ void CryptoParametersRNS::PrecomputeCRTTables(KeySwitchTechnique ksTech, Scaling
         #ifdef WITH_CR_MODULI
             // Custom Chain Reaction implementation with predefined moduli
             const std::map<int, std::vector<uint32_t>>& bitlen_to_modului_map = CRModuliHelper::GetCRModuliMap();
-            //NativeInteger firstP = bitlen_map.at(30)[sizeQ+1];
+            if (bitlen_to_modului_map.find(auxBits) == bitlen_to_modului_map.end()) {
+               OPENFHE_THROW("CRModuliHelper: No precomputed primes found for bit length " + std::to_string(auxBits));
+            }
+
             for (size_t i = 0; i < sizeP; i++)
             {
-                moduliP[i]= bitlen_to_modului_map.at(30)[sizeQ+i+1];
+                moduliP[i]= bitlen_to_modului_map.at(auxBits)[sizeQ+i+1];
                 modulusP *= moduliP[i];
                 rootsP[i] = RootOfUnity<NativeInteger>(2 * n, moduliP[i]);
             }
