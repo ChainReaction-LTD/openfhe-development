@@ -466,9 +466,9 @@ void HybridKeySwitchingDemo1() {
    */
     uint32_t batchSize = 8;
     CCParams<CryptoContextCKKSRNS> parameters;
-    parameters.SetMultiplicativeDepth(5);
+    parameters.SetMultiplicativeDepth(1);
+    parameters.SetFirstModSize(30);        
     parameters.SetScalingModSize(30);
-    parameters.SetFirstModSize(30);          // Usually required for CKKS
     parameters.SetSecurityLevel(HEStd_NotSet);
     parameters.SetRingDim(65536);
 
@@ -494,12 +494,24 @@ void HybridKeySwitchingDemo1() {
     Plaintext ptxt        = cc->MakeCKKSPackedPlaintext(x);
 
     std::cout << "Input x: " << ptxt << std::endl;
-
+    Plaintext resultc;
     auto c = cc->Encrypt(keys.publicKey, ptxt);
+    cc->Decrypt(keys.secretKey, c, &resultc);
+
+    resultc->SetLength(batchSize);
+    std::cout << "decrypted = " << resultc << std::endl;
+    
 
     TimeVar t;
     TIC(t);
     auto cRot1         = cc->EvalRotate(c, 1);
+    Plaintext resultrot1;
+    cc->Decrypt(keys.secretKey, cRot1, &resultrot1);
+
+    resultrot1->SetLength(batchSize);
+    std::cout << "decrypted rot1 = " << resultrot1<< std::endl;
+
+
     auto cRot2         = cc->EvalRotate(cRot1, -2);
     double time2digits = TOC(t);
     // Take note and compare the runtime to the runtime
