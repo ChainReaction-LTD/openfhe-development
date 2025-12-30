@@ -85,11 +85,17 @@ option(WITH_CR_MODULI "Enable Chain Reaction predefined moduli" OFF)
 
 if(WITH_CR_PRNG)
     add_definitions(-DWITH_CR_PRNG)
+    # FIX: Export flag to OpenFHEConfig.cmake
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_CR_PRNG") 
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -DWITH_CR_PRNG")
     message(STATUS "Chain Reaction PRNG is enabled")
 endif()
 
 if(WITH_CR_MODULI)
     add_definitions(-DWITH_CR_MODULI)
+    # FIX: Export flag to OpenFHEConfig.cmake
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_CR_MODULI")
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -DWITH_CR_MODULI")
     message(STATUS "Chain Reaction predefined moduli is enabled")
 endif()
 
