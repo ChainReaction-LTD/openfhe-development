@@ -95,7 +95,7 @@ EvalKey<DCRTPoly> KeySwitchHYBRID::KeySwitchGenInternal(const PrivateKey<DCRTPol
     #ifdef WITH_CR_PRNG
     // Custom Chain Reaction implementation with explicit seeding
     std::vector<uint32_t> seed = lbcrypto::GenerateRandomSeed(8); // 32 byte seed
-    DiscreteUniformGeneratorCRImpl dug(paramsQP, seed);
+    DiscreteUniformGeneratorCRImpl dug(seed);
     #else
     DugType dug;
     #endif
