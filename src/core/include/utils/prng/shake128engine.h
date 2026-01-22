@@ -76,7 +76,7 @@ public:
      * @brief Constructor that accepts a seed vector
      * @param seed A vector of integers (or bytes) to seed the SHAKE state
      */
-    explicit Shake128Engine(const std::vector<uint32_t>& seed, u_int32_t salt, u_int32_t q, u_int16_t seg_i) {
+    explicit Shake128Engine(const std::vector<uint32_t>& seed, u_int32_t salt, u_int8_t q_index, u_int16_t seg_i) {
         assert(seed.size()==8); // 32 bytes
 
         // 1. Initialize the SHAKE128 context
@@ -86,7 +86,7 @@ public:
         // We cast the uint32_t vector to bytes for absorption
         shake_update(&ctx, reinterpret_cast<const void*>(seed.data()), seed.size() * sizeof(uint32_t));
         shake_update(&ctx, reinterpret_cast<const void*>(&salt), sizeof(u_int32_t));
-        shake_update(&ctx, reinterpret_cast<const void*>(&q), sizeof(u_int32_t));
+        shake_update(&ctx, reinterpret_cast<const void*>(&q_index), sizeof(u_int8_t));
         shake_update(&ctx, reinterpret_cast<const void*>(&seg_i), sizeof(uint16_t));
 
         shake_xof(&ctx);

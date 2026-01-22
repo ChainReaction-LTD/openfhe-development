@@ -237,7 +237,7 @@ public:
             
             // generate ak
             auto params = m_BKey[0].GetParams();
-            DiscreteUniformGeneratorCRImpl dug(m_seed.value());
+            DiscreteUniformGeneratorCRImpl dug(params,m_seed.value());
 
             std::vector<DCRTPoly> av(m_BKey.size());
             for (size_t i = 0; i < av.size(); i++) {
