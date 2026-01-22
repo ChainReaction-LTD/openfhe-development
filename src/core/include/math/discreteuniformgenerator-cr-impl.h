@@ -44,46 +44,19 @@
 
 namespace lbcrypto {
 
-inline bool is_normalize(int32_t x, NativeVector::Integer q) {
+inline bool is_accepted(int32_t x, NativeVector::Integer q) {
     NativeVector::Integer qh = q / 2;
      int64_t x_64 = static_cast<int64_t>(x);
     return (-qh.ConvertToInt<int64_t>() <= x_64) && (x_64 <= qh.ConvertToInt<int64_t>());
 }
 
 
-// -----------------------------------------------------------------------------
-// Function: extract_signed_b_bits
-// -----------------------------------------------------------------------------
-inline int32_t extract_signed_b_bits(int32_t w, size_t b) {
-    assert(b > 0 && b <= 32);
-
-    // 1. Extract the signed MSB (W[31])
-    // Note: Arithmetic right shift on negative signed integers is implementation-defined 
-    // prior to C++20, but standard in C++20. Most compilers do arithmetic shift by default.
-    int32_t msb = w >> 31;
-
-    // 2. Extract the (b-1) least significant bits
-    uint32_t mask = (1U << (b - 1)) - 1;
-    int32_t low_bits = w & static_cast<int32_t>(mask);
-
-    // 3. Concatenate: shift msb to top and OR with low bits.
-    // We cast `msb` to uint32_t before shifting to avoid Undefined Behavior 
-    // (shifting a negative signed integer left is UB in older C++ standards).
-    uint32_t msb_shifted = static_cast<uint32_t>(msb) << (b - 1);
+inline int32_t normalize(int32_t x, int32_t q) {
+    // 1. Map to [0, q-1]
+    int32_t val = x % q;
+    if (val < 0) val += q;
     
-    // Combine and cast back to signed
-    return static_cast<int32_t>(msb_shifted | static_cast<uint32_t>(low_bits));
-}
-
-
-inline int8_t FindQindex(const std::vector<NativeVector::Integer>& moduliList,const NativeVector::Integer& modulus){
-    for (size_t i = 0; i < moduliList.size(); i++)
-    {
-        if(moduliList[i]==modulus){
-            return i;
-        }
-    }
-    return -1;    
+    return val;
 }
 
 inline NativeVector::Integer DiscreteUniformGeneratorCRImpl::GenerateInteger() const{
@@ -101,25 +74,22 @@ inline NativeVector DiscreteUniformGeneratorCRImpl::GenerateVector(const uint32_
     
     NativeVector v(size, this->m_modulus);
     std::uniform_int_distribution<uint32_t> dist(DUG_CHUNK_MIN, DUG_CHUNK_MAX);
-    int8_t qIndex = FindQindex(this->m_moduli,this->m_modulus);
 
-    size_t b = static_cast<size_t>(std::ceil(std::log2(modulus.ConvertToDouble())));
+    for (uint16_t seg_i = 0; seg_i < 2048; ++seg_i) {
+        std::unique_ptr<PRNG> shake128engine = std::make_unique<Shake128Engine>(m_seed, m_salt, modulus.ConvertToInt(), seg_i);
 
-    for (uint16_t seg_i = 0; seg_i < 2048; ++seg_i){
-        std::unique_ptr<PRNG> shake128engine = std::make_unique<Shake128Engine>(m_seed,m_salt,qIndex,seg_i);
+        size_t valid_words_idx = 0;
+        uint32_t n_q = (static_cast<uint32_t>((1ULL << 32) / modulus.ConvertToInt())) * modulus.ConvertToInt();
+        int64_t n_q_h = static_cast<int64_t>(n_q) /2;
 
-        size_t valid_words_idx = 0;  
-     
-        for (uint32_t i = 0; i < 42; ++i){
+        for (uint32_t i = 0; i < 42; ++i) {
             uint32_t word = dist(*shake128engine);
+            int32_t signed_word = static_cast<int32_t>(word);
 
-            int32_t x = extract_signed_b_bits(word, b);
+            bool is_accepted = -n_q_h <= signed_word && signed_word < n_q_h;
 
-            if (is_normalize(x, modulus)) {
-                 if (x < 0) {
-                    x += modulus.ConvertToInt();
-                }
-                v[(seg_i*32) + valid_words_idx] = x;
+            if (is_accepted) {
+                v[(seg_i * 32) + valid_words_idx] = normalize(signed_word,modulus.ConvertToInt());
                 valid_words_idx++;
             }
             if(valid_words_idx==32){

@@ -25,12 +25,8 @@ namespace lbcrypto {
  */
 class DiscreteUniformGeneratorCRImpl : public DiscreteUniformGeneratorImpl<NativeVector>{
 public:
-    DiscreteUniformGeneratorCRImpl(std::shared_ptr<lbcrypto::M4DCRTParams> params,std::vector<u_int32_t> seed) {
+    DiscreteUniformGeneratorCRImpl(std::vector<u_int32_t> seed) {
         assert(seed.size()==8);
-        m_moduli = std::vector<NativeVector::Integer>(params->GetParams().size());
-        for (size_t i = 0; i < params->GetParams().size(); i++) {
-            m_moduli[i] = params->GetParams()[i]->GetModulus();
-        }
         m_seed = seed;
     }
     void SetSalt(u_int32_t salt) {
@@ -43,7 +39,6 @@ public:
 private:
     std::vector<uint32_t> m_seed;
     u_int32_t m_salt = 0;
-    std::vector<NativeVector::Integer> m_moduli;
 };
 
 }  // namespace lbcrypto
