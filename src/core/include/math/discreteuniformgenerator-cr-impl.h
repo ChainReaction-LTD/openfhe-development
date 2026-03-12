@@ -44,6 +44,9 @@
 
 namespace lbcrypto {
 
+constexpr uint32_t CR_VECTOR_SIZE = 65536;
+constexpr uint32_t CR_VECTOR_SEGMENTS = 2048;
+
 inline bool is_accepted(int32_t x, NativeVector::Integer q) {
     NativeVector::Integer qh = q / 2;
      int64_t x_64 = static_cast<int64_t>(x);
@@ -68,14 +71,15 @@ inline NativeVector DiscreteUniformGeneratorCRImpl::GenerateVector(const uint32_
                                                               const NativeVector::Integer& modulus){
     this->SetModulus(modulus);
 
-    if (size != 65536)
-        OPENFHE_THROW("vector size must be 65536");
-    
+    if (size != CR_VECTOR_SIZE)
+        OPENFHE_THROW("vector size must be " + std::to_string(CR_VECTOR_SIZE));
+    if (m_modulus >= 1ULL<<32 )
+        OPENFHE_THROW("modulus size must be under 32 bit");
     
     NativeVector v(size, this->m_modulus);
     std::uniform_int_distribution<uint32_t> dist(DUG_CHUNK_MIN, DUG_CHUNK_MAX);
 
-    for (uint16_t seg_i = 0; seg_i < 2048; ++seg_i) {
+    for (uint16_t seg_i = 0; seg_i < CR_VECTOR_SEGMENTS; ++seg_i) {
         std::unique_ptr<PRNG> shake128engine = std::make_unique<Shake128Engine>(m_seed, m_salt, modulus.ConvertToInt(), seg_i);
 
         size_t valid_words_idx = 0;

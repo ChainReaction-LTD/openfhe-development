@@ -18,26 +18,13 @@ namespace lbcrypto {
 
 inline std::vector<uint32_t> GenerateRandomSeed(size_t size) {
     std::vector<uint32_t> seed(size);
-
-    // 1. Initialize primary entropy sources
-    // Derived from time, thread ID, and heap memory location (ASLR)
-    std::vector<uint32_t> initKey(3);
-    initKey[0] = static_cast<uint32_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-    initKey[1] = static_cast<uint32_t>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
-
     // Heap address entropy
     void* mem        = malloc(1);
     uint64_t counter = reinterpret_cast<uint64_t>(mem);
     free(mem);
 
-    // Mix the initial entropy using a standard distribution
-    // This part essentially "warms up" a generator with the gathered entropy
-    // Note: Blake2Engine logic uses its own generator here, but for generic usage,
-    // standard library calls or a simple mix is often sufficient before the strong step below.
-    // For rigorous security matching OpenFHE, you might replicate the Blake2Engine::Generate logic here,
-    // but simpler std::random_device usage is usually the core source.
-
-    // 2. Strong Randomness via std::random_device (Hardware RNG)
+  
+    // Strong Randomness via std::random_device (Hardware RNG)
     // This is the most critical step for security.
     std::random_device rd;
     std::uniform_int_distribution<uint32_t> dist;
