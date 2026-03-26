@@ -73,18 +73,19 @@ inline NativeVector DiscreteUniformGeneratorCRImpl::GenerateVector(const uint32_
 
     if (size != CR_VECTOR_SIZE)
         OPENFHE_THROW("vector size must be " + std::to_string(CR_VECTOR_SIZE));
-    if (m_modulus.ConvertToInt<uint64_t>() >= (1ULL << 32))
+    if (m_modulus >= (1ULL << 32)-1)
         OPENFHE_THROW("modulus size must be under 32 bit");
     
     NativeVector v(size, this->m_modulus);
     std::uniform_int_distribution<uint32_t> dist(DUG_CHUNK_MIN, DUG_CHUNK_MAX);
+    uint32_t modulusInteger = modulus.ConvertToInt();
 
     for (uint16_t seg_i = 0; seg_i < CR_VECTOR_SEGMENTS; ++seg_i) {
-        std::unique_ptr<PRNG> shake128engine = std::make_unique<Shake128Engine>(m_seed, m_salt, modulus.ConvertToInt(), seg_i);
+        std::unique_ptr<PRNG> shake128engine = std::make_unique<Shake128Engine>(m_seed, m_salt, modulusInteger, seg_i);
 
         size_t valid_words_idx = 0;
-        uint32_t n_q = (static_cast<uint32_t>((1ULL << 32) / modulus.ConvertToInt())) * modulus.ConvertToInt();
-        int64_t n_q_h = static_cast<int64_t>(n_q) /2;
+        int64_t n_q = ((1ULL << 32) / modulusInteger) * modulusInteger;
+        int32_t n_q_h = n_q/2;
 
         for (uint32_t i = 0; i < 42; ++i) {
             uint32_t word = dist(*shake128engine);
@@ -93,7 +94,7 @@ inline NativeVector DiscreteUniformGeneratorCRImpl::GenerateVector(const uint32_
             bool is_accepted = -n_q_h <= signed_word && signed_word < n_q_h;
 
             if (is_accepted) {
-                v[(seg_i * 32) + valid_words_idx] = normalize(signed_word,modulus.ConvertToInt());
+                v[(seg_i * 32) + valid_words_idx] = normalize(signed_word,modulusInteger);
                 valid_words_idx++;
             }
             if(valid_words_idx==32){
