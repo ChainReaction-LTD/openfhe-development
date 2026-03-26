@@ -213,16 +213,29 @@ bool CKKSPackedEncoding::Encode() {
     int32_t logApprox   = logc - logValid;
     double approxFactor = pow(2, logApprox);
     double invLen       = static_cast<double>(slots);
+    #if NATIVEINT==64
+        std::vector<int64_t> temp(2 * slots);
+        int64_t MaxBitValue = Max64BitValue();
+    #endif
 
-    std::vector<int64_t> temp(2 * slots);
-    int64_t MaxBitValue = Max64BitValue();
+    #if NATIVEINT ==32
+        std::vector<int32_t> temp(2 * slots);
+        int32_t MaxBitValue = std::numeric_limits<int32_t>::max();
+    #endif
+    
     for (uint32_t i = 0; i < slots; ++i) {
         // Scale down by approxFactor in case the value exceeds a 64-bit integer.
         double dre = inverse[i].real() / approxFactor;
         double dim = inverse[i].imag() / approxFactor;
 
         // Check for possible overflow
+        #if NATIVEINT ==64
         if (is64BitOverflow(dre) || is64BitOverflow(dim)) {
+        #endif
+
+        #if NATIVEINT ==32
+        if (is32BitOverflow(dre) || is32BitOverflow(dim)) {
+        #endif
             // IFFT formula:
             // x[n] = (1/N) * \Sum^(N-1)_(k=0) X[k] * exp( j*2*pi*n*k/N )
             // n is i
@@ -532,6 +545,27 @@ void CKKSPackedEncoding::FitToNativeVector(const std::vector<int64_t>& vec, int6
     }
 }
 
+#if NATIVEINT == 32
+void CKKSPackedEncoding::FitToNativeVector(const std::vector<int32_t>& vec, int32_t bigBound,
+                                           NativeVector* nativeVec) const {
+   NativeInteger bigValueHf(bigBound >> 1);
+    NativeInteger modulus(nativeVec->GetModulus());
+    NativeInteger diff = bigBound - modulus;
+    uint32_t ringDim   = GetElementRingDimension();
+    uint32_t dslots    = vec.size();
+    uint32_t gap       = ringDim / dslots;
+    for (uint32_t i = 0; i < vec.size(); i++) {
+        NativeInteger n(vec[i]);
+        if (n > bigValueHf) {
+            (*nativeVec)[gap * i] = n.ModSub(diff, modulus);
+        }
+        else {
+            (*nativeVec)[gap * i] = n.Mod(modulus);
+        }
+    }
+}
+#endif
+
 #if NATIVEINT == 128
 void CKKSPackedEncoding::FitToNativeVector(const std::vector<int128_t>& vec, int128_t bigBound,
                                            NativeVector* nativeVec) const {
@@ -552,5 +586,4 @@ void CKKSPackedEncoding::FitToNativeVector(const std::vector<int128_t>& vec, int
     }
 }
 #endif
-
 }  // namespace lbcrypto

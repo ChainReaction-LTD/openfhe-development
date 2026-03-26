@@ -73,7 +73,7 @@ inline NativeVector DiscreteUniformGeneratorCRImpl::GenerateVector(const uint32_
 
     if (size != CR_VECTOR_SIZE)
         OPENFHE_THROW("vector size must be " + std::to_string(CR_VECTOR_SIZE));
-    if (m_modulus >= 1ULL<<32 )
+    if (m_modulus.ConvertToInt<uint64_t>() >= (1ULL << 32))
         OPENFHE_THROW("modulus size must be under 32 bit");
     
     NativeVector v(size, this->m_modulus);

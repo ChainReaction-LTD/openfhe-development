@@ -465,14 +465,15 @@ void HybridKeySwitchingDemo1() {
    * HybridKeySwitchingDemo2.
    *
    */
+
     uint32_t batchSize = 8;
     CCParams<CryptoContextCKKSRNS> parameters;
     parameters.SetRingDim(65536);
     parameters.SetMultiplicativeDepth(5);
-    parameters.SetScalingModSize(30);
-    parameters.SetFirstModSize(30);
+    parameters.SetScalingModSize(27);
+    parameters.SetFirstModSize(27);
     parameters.SetBatchSize(batchSize);
-    parameters.SetScalingTechnique(FLEXIBLEAUTO);
+    parameters.SetScalingTechnique(FIXEDAUTO);
     parameters.SetNumLargeDigits(dnum);
 
     CryptoContext<DCRTPoly> cc = GenCryptoContext(parameters);

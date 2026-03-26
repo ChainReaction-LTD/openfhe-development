@@ -289,6 +289,10 @@ protected:
    */
     void FitToNativeVector(const std::vector<int64_t>& vec, int64_t bigBound, NativeVector* nativeVec) const;
 
+#if NATIVEINT == 32
+    void FitToNativeVector(const std::vector<int32_t>& vec, int32_t bigBound, NativeVector* nativeVec) const;
+#endif
+
 #if NATIVEINT == 128
     /**
    * Set modulus and recalculates the vector values to fit the modulus
