@@ -84,7 +84,7 @@ inline NativeVector DiscreteUniformGeneratorCRImpl::GenerateVector(const uint32_
         std::unique_ptr<PRNG> shake128engine = std::make_unique<Shake128Engine>(m_seed, m_salt, modulusInteger, seg_i);
 
         size_t valid_words_idx = 0;
-        int64_t n_q = ((1ULL << 32) / modulusInteger) * modulusInteger;
+        uint32_t n_q = ((1ULL << 32) / modulusInteger) * modulusInteger;
         int32_t n_q_h = n_q/2;
 
         for (uint32_t i = 0; i < 42; ++i) {
