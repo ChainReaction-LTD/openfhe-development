@@ -34,11 +34,14 @@
 
 #include "key/evalkey.h"
 #include "key/evalkeyrelin-fwd.h"
+#include "math/discreteuniformgenerator-cr.h"
 
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+#include <optional>
+#include <cereal/types/optional.hpp>
 
 /**
  * @namespace lbcrypto
@@ -55,6 +58,7 @@ class EvalKeyRelinImpl : public EvalKeyImpl<Element> {
 private:
     std::vector<Element> m_AKey;
     std::vector<Element> m_BKey;
+    std::optional<std::vector<u_int32_t>> m_seed;
 
 public:
     /**
@@ -74,7 +78,7 @@ public:
    *@param &rhs key to copy from
    */
     EvalKeyRelinImpl(const EvalKeyRelinImpl<Element>& rhs)
-        : EvalKeyImpl<Element>(rhs.context), m_AKey(rhs.m_AKey), m_BKey(rhs.m_BKey) {}
+        : EvalKeyImpl<Element>(rhs.context), m_AKey(rhs.m_AKey), m_BKey(rhs.m_BKey), m_seed(rhs.m_seed) {}
 
     /**
    * Move constructor
@@ -82,7 +86,10 @@ public:
    *@param &rhs key to move from
    */
     EvalKeyRelinImpl(EvalKeyRelinImpl<Element>&& rhs) noexcept
-        : EvalKeyImpl<Element>(rhs.context), m_AKey(std::move(rhs.m_AKey)), m_BKey(std::move(rhs.m_BKey)) {}
+        : EvalKeyImpl<Element>(rhs.context),
+          m_AKey(std::move(rhs.m_AKey)),
+          m_BKey(std::move(rhs.m_BKey)),
+          m_seed(std::move(rhs.m_seed)) {}
 
     operator bool() const {
         return (this->context != nullptr) && (m_AKey.size() != 0) && (m_BKey.size() != 0);
@@ -97,6 +104,7 @@ public:
         this->context = rhs.context;
         m_AKey        = rhs.m_AKey;
         m_BKey        = rhs.m_BKey;
+        m_seed        = rhs.m_seed;
         return *this;
     }
 
@@ -109,6 +117,7 @@ public:
         this->context = std::move(rhs.context);
         m_AKey        = std::move(rhs.m_AKey);
         m_BKey        = std::move(rhs.m_BKey);
+        m_seed        = std::move(rhs.m_seed);
         return *this;
     }
 
@@ -171,6 +180,25 @@ public:
     const std::vector<Element>& GetBVector() const override {
         return m_BKey;
     }
+    /**
+   * Setter function to store the Seed.
+   * Overrides base class implementation.
+   *
+   * @param seed used to generate vector a.
+   */
+    void SetSeed(const std::vector<u_int32_t> seed) noexcept override{
+        m_seed = seed;
+    }
+
+    /**
+   * Getter function to access the Seed.
+   * Overrides base class implementation.
+   *
+   * @return The seed used to generate vector a.
+   */
+    const std::optional<std::vector<u_int32_t>> GetSeed() const override{
+        return m_seed;
+    }
 
     void ClearKeys() override {
         m_AKey.clear();
@@ -185,8 +213,14 @@ public:
     template <class Archive>
     void save(Archive& ar, std::uint32_t const version) const {
         ar(::cereal::base_class<EvalKeyImpl<Element>>(this));
-        ar(::cereal::make_nvp("ak", m_AKey));
         ar(::cereal::make_nvp("bk", m_BKey));
+
+        ar(::cereal::make_nvp("ms", m_seed));
+
+        //Store only the seed if exists
+        if (!m_seed.has_value()) {
+            ar(::cereal::make_nvp("ak", m_AKey));
+        }
     }
 
     template <class Archive>
@@ -196,8 +230,27 @@ public:
                           " is from a later version of the library");
         }
         ar(::cereal::base_class<EvalKeyImpl<Element>>(this));
-        ar(::cereal::make_nvp("ak", m_AKey));
+
         ar(::cereal::make_nvp("bk", m_BKey));
+        ar(::cereal::make_nvp("ms", m_seed));
+        if (m_seed.has_value()) {
+            
+            // generate ak
+            auto params = m_BKey[0].GetParams();
+            DiscreteUniformGeneratorCRImpl dug(m_seed.value());
+
+            std::vector<DCRTPoly> av(m_BKey.size());
+            for (size_t i = 0; i < av.size(); i++) {
+                dug.SetSalt(i);
+                av[i] = DCRTPoly(dug, params, Format::EVALUATION);
+            }
+            m_AKey = std::move(av);
+
+        }
+        else {
+            // Seed missing -> We must LOAD AKey
+            ar(::cereal::make_nvp("ak", m_AKey));
+        }
     }
 
     std::string SerializedObjectName() const override {

@@ -107,6 +107,13 @@ inline bool is64BitOverflow(double d) {
     return std::abs(d) > static_cast<double>(Max64BitValue());
 }
 
+#if NATIVEINT == 32
+
+inline bool is32BitOverflow(double d) {
+    return std::abs(d) > static_cast<double>(std::numeric_limits<int32_t>::max());
+}
+#endif
+
 #if NATIVEINT == 128
 inline constexpr __int128 Max128BitValue() {
     return static_cast<__int128>(((unsigned __int128)1 << 127) - ((unsigned __int128)1 << 73) - (unsigned __int128)1);

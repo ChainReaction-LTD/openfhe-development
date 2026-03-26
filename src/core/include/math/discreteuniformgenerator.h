@@ -68,16 +68,18 @@ public:
    * @brief Generates a random integer based on the modulus set for the Discrete
    * Uniform Generator object. Required by DistributionGenerator.
    */
-    typename VecType::Integer GenerateInteger() const;
+    virtual typename VecType::Integer GenerateInteger() const;
 
     /**
    * @brief Generates a vector of random integers using GenerateInteger()
    */
-    VecType GenerateVector(const uint32_t size) const;
-    VecType GenerateVector(const uint32_t size, const typename VecType::Integer& modulus);
+    virtual VecType GenerateVector(const uint32_t size) const;
+    virtual VecType GenerateVector(const uint32_t size, const typename VecType::Integer& modulus);
+
+protected:
+    typename VecType::Integer m_modulus{};
 
 private:
-    typename VecType::Integer m_modulus{};
     uint32_t m_chunksPerValue{};
     uint32_t m_shiftChunk{};
     std::uniform_int_distribution<uint32_t>::param_type m_bound{DUG_CHUNK_MIN, DUG_CHUNK_MAX};
@@ -86,3 +88,4 @@ private:
 }  // namespace lbcrypto
 
 #endif  // LBCRYPTO_INC_MATH_DISCRETEUNIFORMGENERATOR_H_
+

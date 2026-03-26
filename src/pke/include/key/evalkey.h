@@ -38,6 +38,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <optional>
 
 /**
  * @namespace lbcrypto
@@ -128,6 +129,14 @@ public:
     virtual const std::vector<Element>& GetBVector() const {
         OPENFHE_THROW("GetBVector operation not supported");
     }
+
+    virtual void SetSeed(const std::vector<u_int32_t> seed) {
+        OPENFHE_THROW("SetSeed operation not supported");
+    }
+    virtual const std::optional<std::vector<u_int32_t>> GetSeed() const {
+        OPENFHE_THROW("GetSeed operation not supported");
+    }
+
 
     virtual void ClearKeys() {
         OPENFHE_THROW("ClearKeys operation is not supported");
