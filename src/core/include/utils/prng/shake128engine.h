@@ -7,7 +7,7 @@
 // Include the tiny_sha3 header (adjust path as needed)
 
 #include "utils/exception.h"
-#include "utils/memory.h"
+#include <random>
 #include <thread>
 
 extern "C" {
@@ -18,39 +18,10 @@ namespace lbcrypto {
 
 inline std::vector<uint32_t> GenerateRandomSeed(size_t size) {
     std::vector<uint32_t> seed(size);
-    // Heap address entropy
-    void* mem        = malloc(1);
-    uint64_t counter = reinterpret_cast<uint64_t>(mem);
-    free(mem);
-
-  
-    // Strong Randomness via std::random_device (Hardware RNG)
-    // This is the most critical step for security.
     std::random_device rd;
-    std::uniform_int_distribution<uint32_t> dist;
-
-    bool rdGenPassed = false;
-    size_t attempts  = 3;
-
-    // Try to generate the full seed using random_device
-    for (size_t k = 0; k < attempts && !rdGenPassed; ++k) {
-        try {
-            for (size_t i = 0; i < size; ++i) {
-                // Combine hardware randomness with our initial entropy 'counter' to ensure
-                // non-determinism even if random_device fails or is weak on some platform.
-                seed[i] = dist(rd) ^ static_cast<uint32_t>(counter >> (i % 32));
-            }
-            rdGenPassed = true;
-        }
-        catch (...) {
-            // Retry if random_device fails
-        }
+    for (size_t i = 0; i < size; ++i) {
+        seed[i] = rd();
     }
-
-    if (!rdGenPassed) {
-        OPENFHE_THROW("PRNG Error: std::random_device failed to generate seed.");
-    }
-
     return seed;
 }
 
